@@ -1,0 +1,27 @@
+Using Repository Pattern
+
+Using TypeScript for backend
+
+
+
+
+
+
+
+
+
+
+FRONTEND
+
+Creating the presentation layer project
+npm create vite@latest presentation -- --template react-ts
+npm install
+npm run dev
+
+Use Redux Toolkit (RTK) for state management
+npm install @reduxjs/toolkit
+npm install react-redux
+
+Store fetched data in Redux Toolkit (RTK) to avoid refetching
+
+Added components folder
