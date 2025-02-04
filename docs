@@ -22,6 +22,11 @@ Use Redux Toolkit (RTK) for state management
 npm install @reduxjs/toolkit
 npm install react-redux
 
+Alternatively, I used:
+npx degit reduxjs/redux-templates/packages/vite-template-redux presentation
+npm install
+npm run dev
+
 Store fetched data in Redux Toolkit (RTK) to avoid refetching
 
 Added components folder

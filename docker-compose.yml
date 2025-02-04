@@ -1,0 +1,22 @@
+version: '3.8'
+
+services:
+  db:
+    build:
+      context: ./database  # Reference the database directory
+    container_name: pokemon-db
+    restart: always
+    environment:
+      POSTGRES_DB: pokemon_db
+      POSTGRES_USER: pokemon_user
+      POSTGRES_PASSWORD: pokemon_pass
+      PGPORT: 3011
+    ports:
+      - "3011:3011"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql  # Ensure schema initialization
+      - ./database/seed_pokemon.py:/docker-entrypoint-initdb.d/seed_pokemon.py  # Run seed script
+
+volumes:
+  postgres_data:
