@@ -9,7 +9,12 @@
     "start": "node dist/server.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "keywords": ["pokemon", "nodejs", "typescript", "repository-pattern"],
+  "keywords": [
+    "pokemon",
+    "nodejs",
+    "typescript",
+    "repository-pattern"
+  ],
   "author": "",
   "license": "ISC",
   "type": "commonjs",
@@ -20,6 +25,7 @@
     "pg": "^8.13.1"
   },
   "devDependencies": {
+    "@types/cors": "^2.8.17",
     "@types/express": "^5.0.0",
     "@types/node": "^22.13.1",
     "@types/pg": "^8.11.11",
