@@ -29,4 +29,17 @@ npm run dev
 
 Store fetched data in Redux Toolkit (RTK) to avoid refetching
 
+Use MUI
+npm install @mui/material @emotion/react @emotion/styled
+
+Using roboto
+npm install @fontsource/roboto
+
+Installing icons
+npm install @mui/icons-material
+
 Added components folder
+
+Testing:
+npm install --save-dev @testing-library/react @testing-library/jest-dom @testing-library/user-event jest
+npm test

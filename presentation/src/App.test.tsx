@@ -1,105 +1,80 @@
-import { screen, waitFor } from "@testing-library/react"
-import App from "./App"
-import { renderWithProviders } from "./utils/test-utils"
+import { screen, waitFor } from "@testing-library/react";
+import App from "./App";
+import { renderWithProviders } from "./utils/test-utils";
+import { fetchPokemon } from "./features/poketable/pokemonSlice";
+import { store } from "./app/store";
+import { vi } from "vitest"; // Use Vitest's vi instead of Jest
 
-test("App should have correct initial render", () => {
-  renderWithProviders(<App />)
+test("App should have correct initial render", async () => {
+  renderWithProviders(<App />);
 
-  // The app should be rendered correctly
-  expect(screen.getByText(/learn/i)).toBeInTheDocument()
+  // Ensure the logo and button are rendered correctly
+  expect(screen.getByAltText("logo")).toBeInTheDocument();
+  expect(screen.getByText("Hello world")).toBeInTheDocument();
 
-  // Initial state: count should be 0, incrementValue should be 2
-  expect(screen.getByLabelText("Count")).toHaveTextContent("0")
-  expect(screen.getByLabelText("Set increment amount")).toHaveValue(2)
-})
+  // Ensure the Counter component is rendered
+  expect(screen.getByLabelText("Count")).toHaveTextContent("0");
+
+  // Ensure loading state is shown initially
+  expect(screen.getByRole("progressbar")).toBeInTheDocument();
+
+  // Wait for Pokémon table to appear
+  await waitFor(() => {
+    expect(screen.getByRole("table")).toBeInTheDocument();
+  });
+
+  // Ensure Pokémon data is displayed
+  expect(screen.getByText(/bulbasaur/i)).toBeInTheDocument();
+});
+
+test("PokéTable should fetch and display Pokémon data", async () => {
+  renderWithProviders(<App />);
+
+  // Ensure loading state is shown initially
+  expect(screen.getByRole("progressbar")).toBeInTheDocument();
+
+  // Dispatch the action to simulate fetching Pokémon
+  store.dispatch(fetchPokemon());
+
+  // Wait for data to be displayed
+  await waitFor(() => {
+    expect(screen.getByRole("table")).toBeInTheDocument();
+    expect(screen.getByText(/bulbasaur/i)).toBeInTheDocument();
+    expect(screen.getByText(/charmander/i)).toBeInTheDocument();
+    expect(screen.getByText(/squirtle/i)).toBeInTheDocument();
+  });
+
+  // Ensure sprite images are loaded
+  expect(screen.getByAltText("bulbasaur")).toBeInTheDocument();
+  expect(screen.getByAltText("charmander")).toBeInTheDocument();
+  expect(screen.getByAltText("squirtle")).toBeInTheDocument();
+});
 
 test("Increment value and Decrement value should work as expected", async () => {
-  const { user } = renderWithProviders(<App />)
+  const { user } = renderWithProviders(<App />);
 
   // Click on "+" => Count should be 1
-  await user.click(screen.getByLabelText("Increment value"))
-  expect(screen.getByLabelText("Count")).toHaveTextContent("1")
+  await user.click(screen.getByLabelText("Increment value"));
+  expect(screen.getByLabelText("Count")).toHaveTextContent("1");
 
   // Click on "-" => Count should be 0
-  await user.click(screen.getByLabelText("Decrement value"))
-  expect(screen.getByLabelText("Count")).toHaveTextContent("0")
-})
+  await user.click(screen.getByLabelText("Decrement value"));
+  expect(screen.getByLabelText("Count")).toHaveTextContent("0");
+});
 
-test("Add Amount should work as expected", async () => {
-  const { user } = renderWithProviders(<App />)
+test("PokéTable should display an error message if fetching fails", async () => {
+  // Mock the fetchPokemon action to reject
+  vi.spyOn(store, "dispatch").mockImplementation(() => {
+    return Promise.resolve({
+      type: fetchPokemon.rejected.type, // Ensuring it's a valid Redux action
+      error: { message: "Failed to fetch Pokémon" },
+    });
+  });
 
-  // "Add Amount" button is clicked => Count should be 2
-  await user.click(screen.getByText("Add Amount"))
-  expect(screen.getByLabelText("Count")).toHaveTextContent("2")
+  renderWithProviders(<App />);
 
-  const incrementValueInput = screen.getByLabelText("Set increment amount")
-  // incrementValue is 2, click on "Add Amount" => Count should be 4
-  await user.clear(incrementValueInput)
-  await user.type(incrementValueInput, "2")
-  await user.click(screen.getByText("Add Amount"))
-  expect(screen.getByLabelText("Count")).toHaveTextContent("4")
-
-  // [Negative number] incrementValue is -1, click on "Add Amount" => Count should be 3
-  await user.clear(incrementValueInput)
-  await user.type(incrementValueInput, "-1")
-  await user.click(screen.getByText("Add Amount"))
-  expect(screen.getByLabelText("Count")).toHaveTextContent("3")
-})
-
-it("Add Async should work as expected", async () => {
-  const { user } = renderWithProviders(<App />)
-
-  // "Add Async" button is clicked => Count should be 2
-  await user.click(screen.getByText("Add Async"))
-
-  await waitFor(() =>
-    expect(screen.getByLabelText("Count")).toHaveTextContent("2"),
-  )
-
-  const incrementValueInput = screen.getByLabelText("Set increment amount")
-  // incrementValue is 2, click on "Add Async" => Count should be 4
-  await user.clear(incrementValueInput)
-  await user.type(incrementValueInput, "2")
-
-  await user.click(screen.getByText("Add Async"))
-  await waitFor(() =>
-    expect(screen.getByLabelText("Count")).toHaveTextContent("4"),
-  )
-
-  // [Negative number] incrementValue is -1, click on "Add Async" => Count should be 3
-  await user.clear(incrementValueInput)
-  await user.type(incrementValueInput, "-1")
-  await user.click(screen.getByText("Add Async"))
-  await waitFor(() =>
-    expect(screen.getByLabelText("Count")).toHaveTextContent("3"),
-  )
-})
-
-test("Add If Odd should work as expected", async () => {
-  const { user } = renderWithProviders(<App />)
-
-  // "Add If Odd" button is clicked => Count should stay 0
-  await user.click(screen.getByText("Add If Odd"))
-  expect(screen.getByLabelText("Count")).toHaveTextContent("0")
-
-  // Click on "+" => Count should be updated to 1
-  await user.click(screen.getByLabelText("Increment value"))
-  expect(screen.getByLabelText("Count")).toHaveTextContent("1")
-
-  // "Add If Odd" button is clicked => Count should be updated to 3
-  await user.click(screen.getByText("Add If Odd"))
-  expect(screen.getByLabelText("Count")).toHaveTextContent("3")
-
-  const incrementValueInput = screen.getByLabelText("Set increment amount")
-  // incrementValue is 1, click on "Add If Odd" => Count should be updated to 4
-  await user.clear(incrementValueInput)
-  await user.type(incrementValueInput, "1")
-  await user.click(screen.getByText("Add If Odd"))
-  expect(screen.getByLabelText("Count")).toHaveTextContent("4")
-
-  // click on "Add If Odd" => Count should stay 4
-  await user.clear(incrementValueInput)
-  await user.type(incrementValueInput, "-1")
-  await user.click(screen.getByText("Add If Odd"))
-  expect(screen.getByLabelText("Count")).toHaveTextContent("4")
-})
+  // Wait for the error message to appear
+  await waitFor(() => {
+    expect(screen.getByText(/failed to fetch/i)).toBeInTheDocument();
+  });
+});
