@@ -5,10 +5,10 @@ dotenv.config();
 
 const pool = new Pool({
     user: process.env.POSTGRES_USER,
-    host: 'localhost', // Change if using a different hostname in Docker
+    host: process.env.POSTGRES_HOST || 'localhost', // Use the env variable; in Docker set POSTGRES_HOST to "pokemon-db"
     database: process.env.POSTGRES_DB,
     password: process.env.POSTGRES_PASSWORD,
-    port: Number(process.env.PGPORT),
+    port: Number(process.env.PGPORT) || 5432, // Use 5432 unless you’ve explicitly changed it
 });
 
 pool.on('connect', () => {

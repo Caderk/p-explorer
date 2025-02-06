@@ -1,40 +1,51 @@
-services:
-  db:
-    build:
-      context: ./database # Reference the database directory
-    container_name: pokemon-db
-    restart: always
-    environment:
-      POSTGRES_DB: pokemon_db
-      POSTGRES_USER: pokemon_user
-      POSTGRES_PASSWORD: pokemon_pass
-      PGPORT: 3011
-    ports:
-      - "3011:3011"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-      - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql # Ensure schema initialization
-      - ./database/seed_pokemon.py:/docker-entrypoint-initdb.d/seed_pokemon.py # Run seed script
 
-  backend:
+services:
+
+  pokemon-service:
     build:
-      context: ./pokemon-service # Reference the backend service directory
-    container_name: pokemon-api
-    restart: always
+      context: ./pokemon-service
+    container_name: pokemon-service
     depends_on:
-      - db # Ensures the database starts before the backend
+      - pokemon-db
     environment:
       PORT: 3010
       POSTGRES_DB: pokemon_db
       POSTGRES_USER: pokemon_user
       POSTGRES_PASSWORD: pokemon_pass
-      PGPORT: 3011
-      POSTGRES_HOST: db # The service name is used as the hostname inside Docker
+      PGPORT: 5432
+      POSTGRES_HOST: pokemon-db   # Use the Docker service name for the DB!
     ports:
       - "3010:3010"
     volumes:
-      - ./pokemon-service:/app # Mounts the project folder for live updates
-    command: ["npm", "run", "dev"] # Runs the service in development mode
+      - ./pokemon-service:/app
+    command: [ "npm", "run", "dev" ]
+
+  pokemon-db:
+    build:
+      context: ./pokemon-db
+    container_name: pokemon-db
+    environment:
+      POSTGRES_USER: pokemon_user
+      POSTGRES_PASSWORD: pokemon_pass
+      POSTGRES_DB: pokemon_db
+      # Remove PGPORT from here
+    ports:
+      - "3011:5432"  # Map host port 3011 to container port 5432
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  pokemon-db-seeder:
+    build:
+      context: ./pokemon-db-seeder
+    container_name: pokemon-db-seeder
+    depends_on:
+      - pokemon-db
+    environment:
+      DB_HOST: pokemon-db
+      DB_DATABASE: pokemon_db
+      DB_USER: pokemon_user
+      DB_PASSWORD: pokemon_pass
 
 volumes:
-  postgres_data:
+  pgdata:

@@ -1,0 +1,211 @@
+----- Start of file: ./Dockerfile -----
+# Use a lightweight Node.js image
+FROM node:22.13.1-alpine
+
+# Set the working directory
+WORKDIR /app
+
+# Copy package files first for efficient caching
+COPY package.json package-lock.json ./
+
+# Install dependencies
+RUN npm install
+
+# Copy the rest of the application files
+COPY . .
+
+# Build the TypeScript code
+RUN npm run build
+
+# Expose the application port
+EXPOSE 3010
+
+# Start the server
+CMD ["node", "dist/server.js"]
+----- End of file: ./Dockerfile -----
+
+----- Start of file: ./src/app.ts -----
+import express from 'express';
+import cors from 'cors';
+import dotenv from 'dotenv';
+import pokemonRoutes from './routes/pokemonRoutes';
+
+dotenv.config();
+
+const app = express();
+
+// Middleware
+app.use(cors());
+app.use(express.json()); // Parses JSON request bodies
+
+// Routes
+app.use('/api', pokemonRoutes);
+
+// Health check endpoint
+app.get('/health', (req, res) => {
+    res.status(200).json({ message: 'API is running' });
+});
+
+export default app;
+----- End of file: ./src/app.ts -----
+
+----- Start of file: ./src/config/database.ts -----
+import { Pool } from 'pg';
+import dotenv from 'dotenv';
+
+dotenv.config();
+
+const pool = new Pool({
+    user: process.env.POSTGRES_USER,
+    host: 'localhost', // Change if using a different hostname in Docker
+    database: process.env.POSTGRES_DB,
+    password: process.env.POSTGRES_PASSWORD,
+    port: Number(process.env.PGPORT),
+});
+
+pool.on('connect', () => {
+    console.log('Connected to the database');
+});
+
+pool.on('error', (err) => {
+    console.error('Unexpected database error', err);
+    process.exit(-1);
+});
+
+export default pool;
+----- End of file: ./src/config/database.ts -----
+
+----- Start of file: ./src/controllers/PokemonController.ts -----
+import { Request, Response } from 'express';
+import PokemonService from '../services/PokemonService';
+
+class PokemonController {
+    // Handler for fetching all Pokémon
+    async getAll(req: Request, res: Response): Promise<void> {
+        try {
+            const pokemons = await PokemonService.getAllPokemon();
+            res.status(200).json(pokemons);
+        } catch (error) {
+            res.status(500).json({ error: 'Failed to fetch Pokémon list' });
+        }
+    }
+
+    // Handler for fetching a single Pokémon by ID
+    async getById(req: Request, res: Response): Promise<void> {
+        try {
+            const id = parseInt(req.params.id, 10);
+            if (isNaN(id)) {
+                res.status(400).json({ error: 'Invalid Pokémon ID' });
+                return;
+            }
+
+            const pokemon = await PokemonService.getPokemonById(id);
+            res.status(200).json(pokemon);
+        } catch (error) {
+            res.status(404).json({ error: error instanceof Error ? error.message : 'Pokémon not found' });
+        }
+    }
+}
+
+export default new PokemonController();
+----- End of file: ./src/controllers/PokemonController.ts -----
+
+----- Start of file: ./src/repositories/PokemonRepository.ts -----
+import pool from '../config/database';
+
+export interface Pokemon {
+    id: number;
+    pokemon_id: number;
+    name: string;
+    base_experience: number;
+    height: number;
+    weight: number;
+    sprite_url: string;
+    stats: { stat_name: string; base_stat: number; effort: number }[];
+    types: string[];
+}
+
+class PokemonRepository {
+    // Fetch all Pokémon (basic details only)
+    async getAll(): Promise<Omit<Pokemon, 'stats' | 'types'>[]> {
+        const query = `SELECT id, pokemon_id, name, base_experience, height, weight, sprite_url FROM pokemon;`;
+        const { rows } = await pool.query(query);
+        return rows;
+    }
+
+    // Fetch a single Pokémon by ID, including stats and types
+    async getById(id: number): Promise<Pokemon | null> {
+        const query = `
+            SELECT 
+                p.id, p.pokemon_id, p.name, p.base_experience, p.height, p.weight, p.sprite_url,
+                json_agg(DISTINCT jsonb_build_object('stat_name', s.stat_name, 'base_stat', s.base_stat, 'effort', s.effort)) AS stats,
+                json_agg(DISTINCT t.type_name) AS types
+            FROM pokemon p
+            LEFT JOIN stats s ON p.pokemon_id = s.pokemon_id
+            LEFT JOIN types t ON p.pokemon_id = t.pokemon_id
+            WHERE p.pokemon_id = $1
+            GROUP BY p.id, p.pokemon_id, p.name, p.base_experience, p.height, p.weight, p.sprite_url;
+        `;
+
+        const { rows } = await pool.query(query, [id]);
+
+        if (rows.length === 0) return null;
+        return rows[0];
+    }
+}
+
+export default new PokemonRepository();
+----- End of file: ./src/repositories/PokemonRepository.ts -----
+
+----- Start of file: ./src/routes/pokemonRoutes.ts -----
+import { Router } from 'express';
+import PokemonController from '../controllers/PokemonController';
+
+const router = Router();
+
+// Route to get all Pokémon
+router.get('/items', PokemonController.getAll);
+
+// Route to get a single Pokémon by ID
+router.get('/item/:id', PokemonController.getById);
+
+export default router;
+----- End of file: ./src/routes/pokemonRoutes.ts -----
+
+----- Start of file: ./src/server.ts -----
+import app from './app';
+
+const PORT = process.env.PORT || 3000;
+
+app.listen(PORT, () => {
+    console.log(`Server is running on http://localhost:${PORT}`);
+});
+----- End of file: ./src/server.ts -----
+
+----- Start of file: ./src/services/PokemonService.ts -----
+import PokemonRepository, { Pokemon } from '../repositories/PokemonRepository';
+
+class PokemonService {
+    // Fetch all Pokémon (basic details only)
+    async getAllPokemon(): Promise<Omit<Pokemon, 'stats' | 'types'>[]> {
+        return await PokemonRepository.getAll();
+    }
+
+    // Fetch a single Pokémon by ID, including stats and types
+    async getPokemonById(id: number): Promise<Pokemon | null> {
+        if (!id || id <= 0) {
+            throw new Error('Invalid Pokémon ID');
+        }
+
+        const pokemon = await PokemonRepository.getById(id);
+        if (!pokemon) {
+            throw new Error(`Pokémon with ID ${id} not found`);
+        }
+
+        return pokemon;
+    }
+}
+
+export default new PokemonService();
+----- End of file: ./src/services/PokemonService.ts -----
+
