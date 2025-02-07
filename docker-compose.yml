@@ -1,3 +1,4 @@
+version: "3.8"
 
 services:
 
@@ -13,7 +14,7 @@ services:
       POSTGRES_USER: pokemon_user
       POSTGRES_PASSWORD: pokemon_pass
       PGPORT: 5432
-      POSTGRES_HOST: pokemon-db   # Use the Docker service name for the DB!
+      POSTGRES_HOST: pokemon-db
     ports:
       - "3010:3010"
     volumes:
@@ -28,9 +29,8 @@ services:
       POSTGRES_USER: pokemon_user
       POSTGRES_PASSWORD: pokemon_pass
       POSTGRES_DB: pokemon_db
-      # Remove PGPORT from here
     ports:
-      - "3011:5432"  # Map host port 3011 to container port 5432
+      - "3011:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     restart: unless-stopped
@@ -46,6 +46,16 @@ services:
       DB_DATABASE: pokemon_db
       DB_USER: pokemon_user
       DB_PASSWORD: pokemon_pass
+
+  pokemon-viewer:
+    build:
+      context: ./pokemon-viewer
+      args:
+        VITE_API_URL: "http://localhost:3010/api"
+    container_name: pokemon-viewer
+    ports:
+      - "5173:3000"
+
 
 volumes:
   pgdata:

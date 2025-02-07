@@ -14,7 +14,7 @@ Using TypeScript for backend
 FRONTEND
 
 Creating the presentation layer project
-npm create vite@latest presentation -- --template react-ts
+npm create vite@latest pokemon-viewer -- --template react-ts
 npm install
 npm run dev
 
