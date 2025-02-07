@@ -1,0 +1,33 @@
+{
+	"folders": [
+	  {
+		"name": "p-explorer",
+		"path": ".."
+	  },
+	  {
+		"name": "pokemon-db",
+		"path": "../pokemon-db"
+	  },
+	  {
+		"name": "pokemon-db-seeder",
+		"path": "../pokemon-db-seeder"
+	  },
+	  {
+		"name": "pokemon-service",
+		"path": "../pokemon-service"
+	  },
+	  {
+		"name": "pokemon-viewer",
+		"path": "../pokemon-viewer"
+	  }
+	],
+	"settings": {
+	  "files.exclude": {
+		"pokemon-db": true,
+		"pokemon-db-seeder": true,
+		"pokemon-service": true,
+		"pokemon-viewer": true
+	  }
+	}
+  }
+  
